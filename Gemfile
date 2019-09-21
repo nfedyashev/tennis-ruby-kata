@@ -7,6 +7,7 @@ ruby File.read(version_file).strip
 
 gem 'aasm'
 gem 'highline'
+gem 'rake'
 gem 'terminal-table'
 
 group :test do
