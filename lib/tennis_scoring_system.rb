@@ -1,101 +1,72 @@
 # frozen_string_literal: true
 
 require 'terminal-table'
-require 'deuce_mode_fsm'
+require 'player'
 
 class TennisScoringSystem
   def initialize
-    @player1_score = 0
-    @player2_score = 0
+    @players = []
 
     @deuce_mode = false
+  end
 
-    @player1_won_by_normal_points = false
-    @player2_won_by_normal_points = false
+  def add_player(player)
+    raise("Can't add more than 2 players") if @players.size == 2
+    raise(ArgumentError, 'Expected player instance') unless player.is_a?(Player)
+
+    @players << player
   end
 
   def game_is_over?
-    return true if @player1_won_by_normal_points || @player2_won_by_normal_points
-    return false unless @deuce_mode
+    raise("Game hasn't started") unless game_started?
 
-    @deuce_mode.player1_won? || @deuce_mode.player2_won?
+    @players.any? { |player| player.won_by_normal_points? || player.won_after_deuce? }
   end
 
-  def point_won_by(player_number)
+  def game_started?
+    @players.size == 2
+  end
+
+  def point_won_by(player)
+    raise("Game hasn't started") unless game_started?
+    raise(ArgumentError, 'Expected player instance') unless player.is_a?(Player)
+
+    # if activesupport dependency is available I would have used @players.without(player) instead
+    another_player = (@players.dup - [player]).first
+
     if @deuce_mode
-      if player_number == 1
-        @deuce_mode.player1_scored
-      else
-        @deuce_mode.player2_scored
-      end
+      player.score_in_deuce_mode(another_player)
     else
-      score_point_normal_mode(player_number)
+      player.increase_normal_points_score
+
+      if player.normal_points_score == 40 && another_player.normal_points_score == 40
+        @deuce_mode = true
+      end
     end
   end
 
   def score
-    title = if @player1_won_by_normal_points
-              'Player 1 Won'
-            elsif @player2_won_by_normal_points
-              'Player 2 Won'
+    winner_player = @players.detect(&:won?)
+
+    title = if winner_player
+              "#{winner_player.name} Won"
             elsif @deuce_mode
-              if @deuce_mode.deuce?
+              if @players.collect(&:deuce_score).uniq.count == 1
                 'Deuce'
-              elsif @deuce_mode.player1_in_advantage?
-                'Player 1 In Advantage'
-              elsif @deuce_mode.player2_in_advantage?
-                'Player 2 In Advantage'
-              elsif @deuce_mode.player1_won?
-                'Player 1 Won'
-              elsif @deuce_mode.player2_won?
-                'Player 2 Won'
               else
-                raise "can not interpret state of #{@deuce_mode.inspect}"
+                advantage_in_player = @players.detect { |player| player.deuce_score.positive? }
+                "#{advantage_in_player.name} In Advantage"
               end
             end
 
     # terminal-table might be slightly an overkill here but for real tennis scoring system
     # it would be much easier with more than one game set.
+    # TODO: ask a domain expert how to display results in Deuce mode properly or find real tennis live show on Youtube and see yourself
     table = Terminal::Table.new title: title do |t|
-      t.add_row ['Player 1', @player1_score]
+      t.add_row [@players[0].name, @players[0].normal_points_score]
       t << :separator
-      t.add_row ['Player 2', @player2_score]
+      t.add_row [@players[1].name, @players[1].normal_points_score]
     end
     table
-  end
-
-  def score_point_normal_mode(player_number)
-    if player_number == 1
-      if @player1_score == 40
-        @player1_won_by_normal_points = true
-        return
-      else
-        @player1_score = increase_score(@player1_score)
-      end
-    elsif player_number == 2
-      if @player2_score == 40
-        @player2_won_by_normal_points = true
-        return
-      else
-        @player2_score = increase_score(@player2_score)
-      end
-    end
-
-    if @player1_score == 40 && @player2_score == 40
-      @deuce_mode = DeuceModeFSM.new
-    end
-  end
-
-  def increase_score(current_score)
-    case current_score
-    when 0
-      15
-    when 15
-      30
-    when 30
-      40
-    when 40
-      raise 'score as win instead. Max number of points is reached'
-    end
   end
 end
