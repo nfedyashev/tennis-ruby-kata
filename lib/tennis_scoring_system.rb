@@ -2,8 +2,11 @@
 
 require 'terminal-table'
 require 'player'
+require 'pry'
 
 class TennisScoringSystem
+  NORMAL_POINTS_SCORE = [0, 15, 30, 40].freeze
+
   def initialize
     @players = []
 
@@ -39,7 +42,7 @@ class TennisScoringSystem
     else
       player.increase_normal_points_score
 
-      if player.normal_points_score == 40 && another_player.normal_points_score == 40
+      if (player.normal_points_score == NORMAL_POINTS_SCORE.size - 1) && (another_player.normal_points_score == NORMAL_POINTS_SCORE.size - 1)
         @deuce_mode = true
       end
     end
@@ -63,9 +66,9 @@ class TennisScoringSystem
     # it would be much easier with more than one game set.
     # TODO: ask a domain expert how to display results in Deuce mode properly or find real tennis live show on Youtube and see yourself
     table = Terminal::Table.new title: title do |t|
-      t.add_row [@players[0].name, @players[0].normal_points_score]
+      t.add_row [@players[0].name, NORMAL_POINTS_SCORE.at(@players[0].normal_points_score)]
       t << :separator
-      t.add_row [@players[1].name, @players[1].normal_points_score]
+      t.add_row [@players[1].name, NORMAL_POINTS_SCORE.at(@players[1].normal_points_score)]
     end
     table
   end

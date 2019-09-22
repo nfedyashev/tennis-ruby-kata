@@ -43,18 +43,13 @@ class Player
   def increase_normal_points_score
     raise('Already won') if won?
 
-    @normal_points_score = case @normal_points_score
-                           when 0
-                             15
-                           when 15
-                             30
-                           when 30
-                             40
-                           when 40
-                             @won_by_normal_points = true
-                             # intentionally returning original score to be displayed in final table results
-                             @normal_points_score
-             end
+    if @normal_points_score == TennisScoringSystem::NORMAL_POINTS_SCORE.size - 1
+      @won_by_normal_points = true
+      # intentionally returning original score to be displayed in final table results
+      @normal_points_score
+    else
+      @normal_points_score += 1
+    end
   end
 
   def reset_deuce_score
