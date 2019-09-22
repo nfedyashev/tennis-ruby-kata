@@ -1,7 +1,3 @@
-# Why Finite State machine approach was used in that project:
-
-It abstracts domain logic of Deuce mode in one place which is much easier to comprehend and verify in one place.
-
 # Why only 2 specs?
 
 Because I wanted it to be as simple and short as possible. Test code comes at its own price needed to write & maintain it.
